@@ -1,9 +1,0 @@
-D:\Data\CSharp\BlackJack\BlackJack\BlackJack\bin\Debug\BlackJack.exe
-D:\Data\CSharp\BlackJack\BlackJack\BlackJack\bin\Debug\BlackJack.pdb
-D:\Data\CSharp\BlackJack\BlackJack\BlackJack\obj\Debug\BlackJack.csprojAssemblyReference.cache
-D:\Data\CSharp\BlackJack\BlackJack\BlackJack\obj\Debug\BlackJack.Properties.Resources.resources
-D:\Data\CSharp\BlackJack\BlackJack\BlackJack\obj\Debug\BlackJack.csproj.GenerateResource.cache
-D:\Data\CSharp\BlackJack\BlackJack\BlackJack\obj\Debug\BlackJack.csproj.CoreCompileInputs.cache
-D:\Data\CSharp\BlackJack\BlackJack\BlackJack\obj\Debug\BlackJack.exe
-D:\Data\CSharp\BlackJack\BlackJack\BlackJack\obj\Debug\BlackJack.pdb
-D:\Data\CSharp\BlackJack\BlackJack\BlackJack\obj\Debug\BlackJack.FrmAbout.resources
