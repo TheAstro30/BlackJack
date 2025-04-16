@@ -18,5 +18,17 @@ namespace BlackJack.Classes.GameAssets
         public int Value { get; set; }
 
         public bool IsHidden { get; set; }
+
+        public Card()
+        {
+            /* Empty by default */
+        }
+
+        public Card(Card c)
+        {
+            /* Copy constructor */
+            Suit = c.Suit;
+            Value = c.Value;
+        }
     }
 }

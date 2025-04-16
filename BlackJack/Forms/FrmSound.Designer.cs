@@ -1,6 +1,6 @@
-﻿namespace BlackJack
+﻿namespace BlackJack.Forms
 {
-    partial class FrmAbout
+    partial class FrmSound
     {
         /// <summary>
         /// Required designer variable.
@@ -30,15 +30,17 @@
         {
             this.SuspendLayout();
             // 
-            // FrmAbout
+            // FrmSound
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(361, 418);
+            this.ClientSize = new System.Drawing.Size(256, 315);
             this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.Name = "FrmAbout";
-            this.Text = "FrmAbout";
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
+            this.Name = "FrmSound";
+            this.Text = "Sound Settings";
             this.ResumeLayout(false);
 
         }

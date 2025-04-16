@@ -4,18 +4,26 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using BlackJack.Classes.GameAssets;
 
 namespace BlackJack.Classes.Player
 {
+    public enum PlayerState
+    {
+        None = 0,
+        Hit = 1,
+        Stand = 2,
+        BlackJack = 3,
+        Bust = 4
+    }
+
     public interface IPlayer
     {
-        Point ChipRegion { get; set; }
+        PlayerState State { get; set; }
 
-        Point CardRegion { get; set; }
+        event Action<IPlayer> EndBet;
+
+        event Action<IPlayer> EndTurn;
 
         int Index { get; set; }
 
@@ -27,15 +35,13 @@ namespace BlackJack.Classes.Player
 
         int Total { get; set; }
 
-        bool Stand { get; set; }
-
         List<Card> Hand { get; set; }
 
         void AddCard(Card c);
 
-        void ComputeBet();
+        void BeginBet();
 
-        void ComputeHand();
+        void BeginTurn();
 
         string ToString();
     }

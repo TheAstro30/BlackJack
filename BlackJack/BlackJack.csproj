@@ -46,9 +46,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Classes\Audio\Voice.cs" />
+    <Compile Include="Classes\FolderSearch.cs" />
     <Compile Include="Classes\GameAssets\Card.cs" />
-    <Compile Include="Classes\GameAssets\Chip.cs" />
     <Compile Include="Classes\GameAssets\Deck.cs" />
     <Compile Include="Classes\DirectSound\Core\Control.cs" />
     <Compile Include="Classes\DirectSound\Core\Core.cs" />
@@ -57,7 +56,16 @@
     <Compile Include="Classes\DirectSound\Core\Utils.cs" />
     <Compile Include="Classes\DirectSound\Core\UuIds.cs" />
     <Compile Include="Classes\DirectSound\Sound.cs" />
-    <Compile Include="Classes\Game.cs">
+    <Compile Include="Classes\Helpers\Extensions.cs" />
+    <Compile Include="Classes\Helpers\Management\AudioManager.cs" />
+    <Compile Include="Classes\Helpers\Management\SettingsManager.cs" />
+    <Compile Include="Classes\Helpers\Utils.cs" />
+    <Compile Include="Classes\Serialization\XmlFormatting.cs" />
+    <Compile Include="Classes\Serialization\XmlSerialize.cs" />
+    <Compile Include="Classes\Settings\Settings.cs" />
+    <Compile Include="Classes\Settings\SettingsData\GameOptionData.cs" />
+    <Compile Include="Classes\Settings\SettingsData\SoundData.cs" />
+    <Compile Include="Controls\Game.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Classes\Player\ComputerPlayer.cs" />
@@ -76,13 +84,20 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Classes\Helpers\GraphicsBuilder.cs" />
-    <Compile Include="Classes\Helpers\GraphicsExtensions.cs" />
-    <Compile Include="Classes\Helpers\Formatting.cs" />
     <Compile Include="Classes\UI\UiSynchronize.cs" />
+    <Compile Include="Forms\FrmSound.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\FrmSound.Designer.cs">
+      <DependentUpon>FrmSound.cs</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Forms\FrmAbout.resx">
       <DependentUpon>FrmAbout.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\FrmSound.resx">
+      <DependentUpon>FrmSound.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -114,6 +129,7 @@
     <None Include="Images\carpet.jpg" />
     <None Include="Images\card-back.png" />
     <None Include="Images\chip.png" />
+    <None Include="Images\lobby.jpg" />
     <Content Include="mainIcon.ico" />
   </ItemGroup>
   <ItemGroup />

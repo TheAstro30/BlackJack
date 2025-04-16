@@ -1,6 +1,8 @@
 ﻿/* BlackJack - Version 1.0
  * Written by Jason James Newland
  * ©2025 - KangaSoft Software */
+using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -8,6 +10,41 @@ using System.Linq;
 
 namespace BlackJack.Classes.Helpers
 {
+    internal static class StringExtensions
+    {
+        internal static string FormatNumber(this int num)
+        {
+            if (num >= 1000000000)
+            {
+                return (num / 1000000000D).ToString("0.##B");
+            }
+            if (num >= 1000000)
+            {
+                return (num / 1000000D).ToString("0.##M");
+            }
+            return num >= 1000 ? (num / 1000D).ToString("0.##k") : num.ToString("#,0");
+        }
+    }
+
+    internal static class ListExtensions
+    {
+        private static readonly Random Rng = new Random();
+
+        /* List extension */
+        internal static void Shuffle<T>(this IList<T> list)
+        {
+            var n = list.Count;
+            while (n > 1)
+            {
+                n--;
+                var k = Rng.Next(n + 1);
+                var value = list[k];
+                list[k] = list[n];
+                list[n] = value;
+            }
+        }
+    }
+
     internal static class GraphicsExtensions
     {
         /* Drawing extensions */

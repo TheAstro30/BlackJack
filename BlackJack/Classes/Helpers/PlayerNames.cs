@@ -29,7 +29,10 @@ namespace BlackJack.Classes.Helpers
             "Sarah",
             "Erin",
             "Kath",
-            "Karen"
+            "Karen",
+            "Annie",
+            "Anna",
+            "Hannah"
         });
 
         private static readonly List<string> Male = new List<string>(new[]
@@ -52,7 +55,8 @@ namespace BlackJack.Classes.Helpers
             "Tim",
             "Tony",
             "Alan",
-            "Aaron"
+            "Aaron",
+            "Xavier"
         });
 
         public static string GetRandomName
@@ -64,7 +68,7 @@ namespace BlackJack.Classes.Helpers
                 switch (sex)
                 {
                     case 0:
-                        firstName = Female[Rnd.Next(0, Female.Count)];
+                        firstName = GetRandomFemaleName;
                         break;
 
                     default:

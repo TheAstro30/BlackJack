@@ -8,6 +8,7 @@ using BlackJack.Forms;
 
 namespace BlackJack
 {
+    /* How do trees connect to the internet? They log in. */
     internal static class Program
     {
         /// <summary>

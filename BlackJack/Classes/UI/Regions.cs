@@ -49,13 +49,13 @@ namespace BlackJack.Classes.UI
 
             Chips = new List<Point>();
 
-            Cards = new List<Point>(new []
+            Cards = new List<Point>(new[]
             {
-                new Point(1120, 130),
-                new Point(676, 435),
-                new Point(238, 130),
-                new Point(center - 15, 35) /* Dealer */
-                });
+                new Point(1105, 130),
+                new Point(665, 435),
+                new Point(224, 130),
+                new Point(center - Resources.card_back.Width / 2 + 8, 35) /* Dealer */
+            });
         }
     }
 }

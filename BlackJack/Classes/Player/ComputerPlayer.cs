@@ -1,10 +1,9 @@
 ﻿/* BlackJack - Version 1.0
  * Written by Jason James Newland
  * ©2025 - KangaSoft Software */
-
 using System;
 using System.Collections.Generic;
-using System.Drawing;
+using System.Threading;
 using BlackJack.Classes.GameAssets;
 using BlackJack.Classes.Helpers;
 
@@ -13,10 +12,12 @@ namespace BlackJack.Classes.Player
     public class ComputerPlayer : IPlayer
     {
         /* The "decision" making whether to hit, stand, etc. is going to happen in this class */
-        public Point ChipRegion { get; set; }
+        private static readonly Random Rnd = new Random();
+        public PlayerState State { get; set; }
 
-        public Point CardRegion { get; set; }
+        public event Action<IPlayer> EndBet;
 
+        public event Action<IPlayer> EndTurn;
         public int Index { get; set; }
 
         public string Name { get; set; }
@@ -26,8 +27,6 @@ namespace BlackJack.Classes.Player
         public int Bet { get; set; }
 
         public int Total { get; set; }
-
-        public bool Stand { get; set; }
 
         public List<Card> Hand { get; set; }
 
@@ -40,9 +39,6 @@ namespace BlackJack.Classes.Player
 
             /* Set this player's money initially to $2,000 */
             Money = 2000;
-
-            //test
-            Bet = 100;
         }
 
         public void AddCard(Card c)
@@ -59,21 +55,70 @@ namespace BlackJack.Classes.Player
             Hand.Add(c);
         }
 
-        public void ComputeBet()
+        public void BeginBet()
         {
             /* Compute a bet on place bet round */
+            Bet = 100;
+            Money -= 100;
         }
 
-        public void ComputeHand()
+        public void BeginTurn()
         {
             /* AI to calculate to hit or stand */
+            if (Total < 17)
+            {
+                if (Total == 16)
+                {
+                    Thread.Sleep(Rnd.Next(100, 1000));
+                    var i = Rnd.Next(0, 20);
+                    switch (i)
+                    {
+                        case 3:
+                        case 7:
+                        case 11:
+                        case 19:
+                            State = PlayerState.Hit;
+                            break;
+
+                        default:
+                            State = PlayerState.Stand;
+                            break;
+                    }
+                }
+                else
+                {
+                    State = PlayerState.Hit;
+                }
+            }
+            else if (Total == 17)
+            {
+                Thread.Sleep(Rnd.Next(100, 1000));
+                var i = Rnd.Next(0, 100);
+                switch (i)
+                {
+                    case 13:
+                    case 20:
+                    case 50:
+                    case 99:
+                        State = PlayerState.Hit;
+                        break;
+
+                    default:
+                        State = PlayerState.Stand;
+                        break;
+                }
+            }
+            else
+            {
+                State = PlayerState.Stand;
+            }
         }
 
         public override string ToString()
         {
             return Bet > 0
-                ? $"{Name} - ${Formatting.FormatNumber(Money)}\r\nBet: ${Formatting.FormatNumber(Bet)}"
-                : $"{Name} - ${Formatting.FormatNumber(Money)}";
+                ? $"{Name} - ${Money.FormatNumber()}\r\nBet: ${Bet.FormatNumber()}"
+                : $"{Name} - ${Money.FormatNumber()}";
         }
     }
 }
