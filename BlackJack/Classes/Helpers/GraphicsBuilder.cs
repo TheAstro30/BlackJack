@@ -30,7 +30,6 @@ namespace BlackJack.Classes.Helpers
                     for (var x = 0; x <= 12; x++)
                     {
                         /* Set each card image */
-                        System.Diagnostics.Debug.Print(" > Set card Suit: {0} Value: {1}", y, x + 1);
                         var cardImage = new Bitmap(CardSize.Width, CardSize.Height);
                         var src = new Rectangle(x * CardSize.Width, startY, CardSize.Width, CardSize.Height);
                         GetImage(cardImage, src, cards, CardSize);

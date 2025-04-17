@@ -4,10 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Windows.Forms;
 using BlackJack.Classes.GameAssets;
@@ -21,28 +19,28 @@ namespace BlackJack.Controls
 {
     public class Game : Form
     {
-        public event Action<Game> ReturnToLobby;
-
         private readonly UiSynchronize _sync;
-
         private readonly Font _font = new Font("Segoe UI Semibold", 14.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
-
         private Size _tableSize;
         private Point _startPoint;
-
         private readonly Regions _regions = new Regions();
-
-        /* Decks */
-        public Deck GameDeck = new Deck();
-        public Deck DiscardDeck = new Deck();
-
-        public List<IPlayer> Players = new List<IPlayer>();
-
         private IPlayer _currentPlayer;
 
+        public event Action<IPlayer> PlayerResigned;
+
+        #region Properties
         public int MinimumBet { get; set; }
 
         public bool GameInProgress { get; set; }
+
+        /* Decks */
+        public Deck GameDeck { get; private set; }
+
+        public Deck DiscardDeck { get; private set; }
+
+        /* Players list */
+        public List<IPlayer> Players { get; private set; }
+        #endregion
 
         public Game()
         {
@@ -61,11 +59,19 @@ namespace BlackJack.Controls
             MinimumBet = 100;
         }
 
+        #region Overridable methods
+        protected virtual void OnPlayerActionRequired(IPlayer player, PlayerAction action)
+        {
+            /* Do nothing on this class - handled in derived class */
+        }
+        #endregion
+
         #region Public methods
         public void NewGame()
         {
-            /* Set up the players - with current table, we can have up to 6 computer players/1 human */
+            /* Set up the players - with current table, we can have up to 6 computer players/1 human, I'm using a total of 3 to keep it cleaner */
             GameInProgress = true;
+            Players = new List<IPlayer>();
             for (var p = 0; p <= 3; p++)
             {
                 IPlayer player;
@@ -88,8 +94,9 @@ namespace BlackJack.Controls
                 player.Index = p;
                 Players.Add(player);
                 /* Add callback handles */
-                player.EndBet += PlayerEndBet;
-                player.EndTurn += PlayerEndTurn;
+                player.PlayerActionRequired += OnPlayerActionRequired;
+                player.EndBet += OnPlayerEndBet;
+                player.EndTurn += OnPlayerEndTurn;
             }
             /* Build new deck - four decks */
             DiscardDeck = new Deck();
@@ -103,7 +110,6 @@ namespace BlackJack.Controls
             }
             /* Shuffle it */
             GameDeck.Shuffle();
-
             NewRound();
         }
 
@@ -111,49 +117,39 @@ namespace BlackJack.Controls
         {
             if (InvokeRequired)
             {
+                System.Diagnostics.Debug.Print("Need to invoke");
                 _sync.Execute(NewRound);
                 return;
             }
-
+            System.Diagnostics.Debug.Print("Begin new round");
             foreach (var p in Players)
             {
                 foreach (var c in p.Hand)
                 {
                     DiscardDeck.Add(c);
                 }
-
                 p.Hand = new List<Card>();
                 p.Total = 0;
                 p.Bet = 0;
                 p.State = PlayerState.None;
                 if (p.GetType() != typeof(Dealer) && p.Money < MinimumBet)
                 {
-                    /* Player can no longer player */
+                    /* Player can no longer play */
+                    PlayerResigned?.Invoke(p);
                     if (p.GetType() == typeof(HumanPlayer))
                     {
                         /* It's me */
-                        MessageBox.Show(
-                            "You don't have enough money to meet the minimum bet requirement. Returning to lobby.");
                         GameInProgress = false;
                         Invalidate();
-                        ReturnToLobby?.Invoke(this);
                         return;
                     }
-                    var name = PlayerNames.GetRandomName;
-                    MessageBox.Show(
-                        p.Name +
-                        " doesn't have the required amount of money to meet the minimum bet and have retired.\r\n" +
-                        name + " has now joined the table.");
-                    p.Name = name;
-                    p.Money = 2000;
                 }
             }
-
             Invalidate();
-
             /* Check deck isn't in need of shuffling */
-            if (GameDeck.Count < 15)
+            if (GameDeck.Count < 25)
             {
+                System.Diagnostics.Debug.Print("RESHUFFLE");
                 foreach (var c in DiscardDeck)
                 {
                     GameDeck.Add(c);
@@ -161,12 +157,13 @@ namespace BlackJack.Controls
                 DiscardDeck.Clear();
                 GameDeck.Shuffle();
             }
-            /* Begin a new round */
-            var t = new Thread(PlayRoundThread) {IsBackground = true};
+            /* Begin a new round - place bets */
+            var t = new Thread(BeginBetting) { IsBackground = true};
             t.Start();
         }
         #endregion
 
+        #region Overrides
         //test code
         protected override void OnLoad(EventArgs e)
         {
@@ -283,31 +280,24 @@ namespace BlackJack.Controls
             }
             base.OnPaint(e);
         }
+        #endregion
 
-        #region Play thread callbacks
-        private void PlayRoundThread()
+        #region Playing thread callbacks
+        private void BeginBetting()
         {
-            /* Place bets */
-            Thread.Sleep(100);
+            System.Diagnostics.Debug.Print("begin betting");
+            Thread.Sleep(1000);
             AudioManager.PlayVoice(SoundVoiceType.PlaceBets, true);
             Thread.Sleep(1000);
-            for (var b = 0; b <= 2; b++)
-            {
-                _currentPlayer = Players[b];
-                Redraw();
-                Thread.Sleep(200);
-                _currentPlayer.BeginBet();
-                AudioManager.Play(SoundEffectType.ChipDrop, true);
-                Redraw();
-                Thread.Sleep(500);
-            }
-            _currentPlayer = null;
+            /* Get the first player */
+            _currentPlayer = Players[0];
             Redraw();
+            Thread.Sleep(200);
+            _currentPlayer.BeginBet();
+        }
 
-            AudioManager.PlayVoice(SoundVoiceType.NoMoreBets, true);
-            Thread.Sleep(1500);
-
-            /* Begin new deal */
+        private void BeginDeal()
+        {
             for (var i = 0; i <= 1; i++)
             {
                 foreach (var p in Players)
@@ -326,7 +316,9 @@ namespace BlackJack.Controls
                     Thread.Sleep(300);
                 }
             }
-            /* Insert insurance here */
+            /* Check players for BlackJack */
+            CheckPlayersForBlackJack();
+            /* Does dealer have an ace? Check dealer has BlackJack */
             var dealer = Players[Players.Count - 1];
             if (dealer.Hand[0].Value == 1)
             {
@@ -342,11 +334,135 @@ namespace BlackJack.Controls
                     Thread.Sleep(500);
                     AudioManager.PlayVoice(SoundVoiceType.DealerBlackJack, true);
                     Thread.Sleep(1000);
-                    CalculatePlayerTotals(dealer);
+                    CalculatePlayerTotals();
                     return;
                 }
             }
-            /* Begin player turn - need to evaluate BlackJack of players first */
+            /* Dealing ended */
+            EndDeal();
+        }
+
+        private void EndDeal()
+        {
+            if (InvokeRequired)
+            {
+                _sync.Execute(EndDeal);
+                return;
+            }
+            /* Pass on to next stage */
+            var t = new Thread(() => BeginPlayerTurn(0)) {IsBackground = true};
+            t.Start();
+        }
+
+        private void BeginPlayerTurn(int index)
+        {
+            /* Get the first player */
+            _currentPlayer = Players[index];
+            System.Diagnostics.Debug.Print("Beginning turn: " + _currentPlayer.Name);
+            Redraw();
+            if (_currentPlayer.GetType() == typeof(Dealer))
+            {
+                System.Diagnostics.Debug.Print("We are now exiting the beginplayerturn thread");
+                EndPlayerTurn();
+                return;
+            }
+            if (_currentPlayer.State == PlayerState.BlackJack)
+            {
+                /* Skip this player, move to next */
+                System.Diagnostics.Debug.Print("Recursive call - blackjack");
+                BeginPlayerTurn(index + 1);
+                return;
+            }
+            /* Announce value */
+            AudioManager.PlayVoiceNumeric(_currentPlayer.Total);
+            Thread.Sleep(1000);
+            _currentPlayer.BeginTurn();
+        }
+
+        private void EndPlayerTurn()
+        {
+            if (InvokeRequired)
+            {
+                _sync.Execute(EndPlayerTurn);
+                return;
+            }
+            /* It's the dealer's turn */
+            System.Diagnostics.Debug.Print("Dealer's turn!!");
+            var t = new Thread(BeginDealerStandOff) {IsBackground = true};
+            t.Start();
+        }
+
+        private void BeginDealerStandOff()
+        {
+            System.Diagnostics.Debug.Print("Beginning dealer standoff...");
+            _currentPlayer.Hand[1].IsHidden = false;
+            Redraw();
+            /* Announce number */
+            if (_currentPlayer.Total == 21)
+            {
+                /* BlackJack! */
+                _currentPlayer.State = PlayerState.BlackJack;
+                AudioManager.PlayVoice(SoundVoiceType.DealerBlackJack, true);
+                Thread.Sleep(1000);
+            }
+            else
+            {
+                AudioManager.PlayVoiceNumeric(_currentPlayer.Total);
+                Thread.Sleep(500);
+                var b = true;
+                while (b)
+                {
+                    if (_currentPlayer.Total == 17 && _currentPlayer.Hand.Count == 2 && _currentPlayer.Hand.FirstOrDefault(o => o.Value == 1) != null)
+                    {
+                        /* MUST be soft 17 (aces worth 1) */
+                        _currentPlayer.Total -= 10;
+                    }
+                    else if (_currentPlayer.Total < 17)
+                    {
+                        /* Deal another card unless soft 17 or greater */
+                        var c = GameDeck[0];
+                        GameDeck.RemoveAt(0);
+                        /* Check current hand doesn't have an ace in it (2 cards), if so, change total -10 */
+                        if (_currentPlayer.Hand.Count == 2 && _currentPlayer.Total + c.Value > 21 && _currentPlayer.Hand.FirstOrDefault(o => o.Value == 1) != null)
+                        {
+                            System.Diagnostics.Debug.Print("Dealer removing 10");
+                            _currentPlayer.Total -= 10;
+                        }
+                        _currentPlayer.Hand.Add(c);
+                        _currentPlayer.Total += c.Value > 10 ? 10 : c.Value;
+                        Redraw();
+                        AudioManager.Play(SoundEffectType.Deal, true);
+                        Thread.Sleep(500);
+                        if (_currentPlayer.Total <= 21)
+                        {
+                            AudioManager.PlayVoiceNumeric(_currentPlayer.Total);
+                            Thread.Sleep(500);
+                            if (_currentPlayer.Total < 17)
+                            {
+                                continue;
+                            }
+                            /* At soft 17 or greater - end of round */
+                        }
+                        else
+                        {
+                            /* Dealer busted - end of round - everyone wins */
+                            _currentPlayer.State = PlayerState.Bust;
+                            AudioManager.PlayVoice(SoundVoiceType.DealerBust, true);
+                        }
+                        b = false;
+                    }
+                    else
+                    {
+                        b = false;
+                    }
+                }
+            }
+            Thread.Sleep(1000);
+            CalculatePlayerTotals();
+        }
+
+        private void CheckPlayersForBlackJack()
+        {
             foreach (var p in Players)
             {
                 _currentPlayer = p;
@@ -360,142 +476,12 @@ namespace BlackJack.Controls
                     Redraw();
                 }
             }
-            for (var p = 0; p <= 3; p++)
-            {
-                _currentPlayer = Players[p];
-                Redraw();
-                if (_currentPlayer.GetType() == typeof(Dealer))
-                {
-                    /* It's the dealer's turn, reveal hidden card */
-                    _currentPlayer.Hand[1].IsHidden = false;
-                    Redraw();
-                    /* Announce number */
-                    if (_currentPlayer.Total == 21)
-                    {
-                        /* BlackJack! */
-                        _currentPlayer.State = PlayerState.BlackJack;
-                        AudioManager.PlayVoice(SoundVoiceType.DealerBlackJack, true);
-                        Thread.Sleep(1000);
-                    }
-                    else
-                    {
-                        AudioManager.PlayVoiceNumeric(_currentPlayer.Total);
-                        Thread.Sleep(500);
-                        while (true)
-                        {
-                            if (_currentPlayer.Total == 17 && _currentPlayer.Hand.Count == 2 && _currentPlayer.Hand.FirstOrDefault(o => o.Value == 1) != null)
-                            {
-                                /* MUST be soft 17 (aces worth 1) */
-                                _currentPlayer.Total -= 10;
-                            }
-                            else if (_currentPlayer.Total < 17)
-                            {
-                                /* Deal another card unless soft 17 or greater */
-                                var c = GameDeck[0];
-                                GameDeck.RemoveAt(0);
-                                /* Check current hand doesn't have an ace in it (2 cards), if so, change total -10 */
-                                if (_currentPlayer.Hand.Count == 2 && _currentPlayer.Total + c.Value > 21 && _currentPlayer.Hand.FirstOrDefault(o => o.Value == 1) != null)
-                                {
-                                    _currentPlayer.Total -= 10;
-                                }
-                                _currentPlayer.Hand.Add(c);
-                                _currentPlayer.Total += c.Value > 10 ? 10 : c.Value;
-                                Redraw();
-                                AudioManager.Play(SoundEffectType.Deal, true);
-                                Thread.Sleep(500);
-                                if (_currentPlayer.Total <= 21)
-                                {
-                                    /* End of round */
-                                    AudioManager.PlayVoiceNumeric(_currentPlayer.Total);
-                                    Thread.Sleep(500);
-                                }
-                                else
-                                {
-                                    /* End of round - everyone wins */
-                                    _currentPlayer.State = PlayerState.Bust;
-                                    AudioManager.PlayVoice(SoundVoiceType.DealerBust, true);
-                                    Thread.Sleep(1000);
-                                    CalculatePlayerTotals(dealer);
-                                    return;
-                                }
-                            }
-                            else
-                            {
-                                break;
-                            }
-                        }
-                    }
-                    Thread.Sleep(1000);
-                }
-                else
-                {
-                    if (_currentPlayer.State == PlayerState.BlackJack)
-                    {
-                        continue;
-                    }
-                    /* Announce value */
-                    AudioManager.PlayVoiceNumeric(_currentPlayer.Total);
-                    Thread.Sleep(1000);
-                    _currentPlayer.BeginTurn();
-                    System.Diagnostics.Debug.Print("finished");
-                    var b = true;
-                    while (b)
-                    {
-                        switch (_currentPlayer.State)
-                        {
-                            case PlayerState.Hit:
-                                /* Deal another card to player */
-                                var c = GameDeck[0];
-                                GameDeck.RemoveAt(0);
-                                /* Check current hand doesn't have an ace in it (2 cards), if so, change total -10 */
-                                if (_currentPlayer.Hand.Count == 2 && _currentPlayer.Total + c.Value > 21 && _currentPlayer.Hand.FirstOrDefault(o => o.Value == 1) != null)
-                                {
-                                    _currentPlayer.Total -= 10;
-                                }
-                                /* Otherwise, above code is ignored, add card to hand - they bust, they bust! */
-                                _currentPlayer.AddCard(c);
-                                AudioManager.Play(SoundEffectType.Deal, true);
-                                Redraw();
-                                Thread.Sleep(300);
-                                if (_currentPlayer.Total <= 21)
-                                {
-                                    /* End of deal, turn play back to player */
-                                    AudioManager.PlayVoiceNumeric(_currentPlayer.Total);
-                                    Thread.Sleep(500);
-                                    if (_currentPlayer.Total == 21)
-                                    {
-                                        /* End of player's turn - move on to next */
-                                        b = false;
-                                    }
-                                    else
-                                    {
-                                        _currentPlayer.State = PlayerState.None;
-                                        _currentPlayer.BeginTurn();
-                                    }
-                                }
-                                else
-                                {
-                                    /* End of deal - player bust */
-                                    _currentPlayer.State = PlayerState.Bust;
-                                    AudioManager.PlayVoice(SoundVoiceType.PlayerBust, true);
-                                    Thread.Sleep(1000);
-                                    b = false;
-                                }
-                                break;
-
-                            default:
-                                b = false;
-                                break;
-                        }
-                    }
-                    Thread.Sleep(1000);
-                }
-            }
-            CalculatePlayerTotals(dealer);
+            _currentPlayer = null;
         }
 
-        private void CalculatePlayerTotals(IPlayer dealer)
+        private void CalculatePlayerTotals()
         {
+            var dealer = Players[Players.Count - 1];
             /* Evaluate player totals */
             foreach (var p in Players.TakeWhile(p => p.GetType() != typeof(Dealer)))
             {
@@ -592,38 +578,88 @@ namespace BlackJack.Controls
         #endregion
 
         #region Game play callbacks
-        private void PlayerEndBet(IPlayer player)
+        private void OnPlayerEndBet(IPlayer player)
         {
-            //invoke back to UI
+            if (InvokeRequired)
+            {
+                AudioManager.Play(SoundEffectType.ChipDrop, true);
+                Redraw();
+                Thread.Sleep(500);
+                /* Get next player */
+                _currentPlayer = Players[player.Index + 1];
+                if (_currentPlayer.GetType() == typeof(Dealer))
+                {
+                    /* End of betting */
+                    _currentPlayer = null;
+                    AudioManager.PlayVoice(SoundVoiceType.NoMoreBets, true);
+                    Thread.Sleep(1500);
+                }
+                _sync.Execute(() => OnPlayerEndBet(player));
+                return;
+            }
             System.Diagnostics.Debug.Print(">> PLAYER " + player.Name + " ended bet");
-            Redraw();
             /* Move on to next player. Player is dealer? */
-            var nextPlayer = Players[player.Index + 1];
-            if (nextPlayer.GetType() == typeof(Dealer))
+            if (_currentPlayer == null)
             {
                 /* Betting ends, moving on to dealing */
+                var t = new Thread(BeginDeal) { IsBackground = true };
+                t.Start();
             }
             else
             {
                 /* Move to next player (still in same background thread) */
+                var t = new Thread(_currentPlayer.BeginBet) { IsBackground = true };
+                t.Start();
             }
         }
 
-        private void PlayerEndTurn(IPlayer player)
+        private void OnPlayerEndTurn(IPlayer player)
         {
             //invoke back to UI
             System.Diagnostics.Debug.Print(">> PLAYER " + player.Name + " ended turn");
             Redraw();
-            /* Move on to next player. Player is dealer? */
-            var nextPlayer = Players[player.Index + 1];
-            if (nextPlayer.GetType() == typeof(Dealer))
+            switch (_currentPlayer.State)
             {
-                /* Playing ends, moving on to dealer reveal/dealing cards to themselves */
+                case PlayerState.Hit:
+                    /* Deal another card to player */
+                    var c = GameDeck[0];
+                    GameDeck.RemoveAt(0);
+                    /* Check current hand doesn't have an ace in it (2 cards), if so, change total -10 */
+                    if (_currentPlayer.Hand.Count == 2 && _currentPlayer.Total + c.Value > 21 &&
+                        _currentPlayer.Hand.FirstOrDefault(o => o.Value == 1) != null)
+                    {
+                        _currentPlayer.Total -= 10;
+                    }
+                    /* Otherwise, above code is ignored, add card to hand - they bust, they bust! */
+                    _currentPlayer.AddCard(c);
+                    AudioManager.Play(SoundEffectType.Deal, true);
+                    Redraw();
+                    Thread.Sleep(300);
+                    if (_currentPlayer.Total <= 21)
+                    {
+                        /* End of deal, turn play back to player */
+                        AudioManager.PlayVoiceNumeric(_currentPlayer.Total);
+                        Thread.Sleep(500);
+                        if (_currentPlayer.Total < 21)
+                        {
+                            /* Current player plays again */
+                            _currentPlayer.State = PlayerState.None;
+                            _currentPlayer.BeginTurn();
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        /* End of deal - player bust */
+                        _currentPlayer.State = PlayerState.Bust;
+                        AudioManager.PlayVoice(SoundVoiceType.PlayerBust, true);
+                        Thread.Sleep(1000);
+                    }
+                    break;
             }
-            else
-            {
-                /* Move to next player (still in same background thread) */
-            }
+            /* Move to next player */
+            Thread.Sleep(1000);
+            BeginPlayerTurn(player.Index + 1);
         }
         #endregion
     }

@@ -8,20 +8,34 @@ using BlackJack.Classes.GameAssets;
 
 namespace BlackJack.Classes.Player
 {
+    /* This enum is used only for the human player interaction */
+    public enum PlayerAction
+    {
+        None = 0,
+        Betting = 1,
+        Insurance = 2,
+        PlayerTurn = 3
+    }
+
     public enum PlayerState
     {
         None = 0,
         Hit = 1,
-        Stand = 2,
-        BlackJack = 3,
-        Bust = 4
+        DoubleDown = 2,
+        Stand = 3,
+        BlackJack = 4,
+        Bust = 5
     }
 
     public interface IPlayer
     {
         PlayerState State { get; set; }
 
+        event Action<IPlayer, PlayerAction> PlayerActionRequired;
+
         event Action<IPlayer> EndBet;
+
+        event Action<IPlayer> EndInsurance;
 
         event Action<IPlayer> EndTurn;
 
@@ -39,7 +53,11 @@ namespace BlackJack.Classes.Player
 
         void AddCard(Card c);
 
+        void EndPlayerActionRequired(PlayerAction action);
+
         void BeginBet();
+
+        void BeginInsurance();
 
         void BeginTurn();
 

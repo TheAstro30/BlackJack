@@ -3,8 +3,10 @@
  * ©2025 - KangaSoft Software */
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using BlackJack.Classes.GameAssets;
 using BlackJack.Classes.Helpers;
+using BlackJack.Classes.Helpers.Management;
 
 namespace BlackJack.Classes.Player
 {
@@ -12,9 +14,14 @@ namespace BlackJack.Classes.Player
     {
         public PlayerState State { get; set; }
 
+        public event Action<IPlayer, PlayerAction> PlayerActionRequired;
+
         public event Action<IPlayer> EndBet;
 
+        public event Action<IPlayer> EndInsurance;
+
         public event Action<IPlayer> EndTurn;
+
         public int Index { get; set; }
 
         public string Name { get; set; }
@@ -47,15 +54,27 @@ namespace BlackJack.Classes.Player
             Hand.Add(c);
         }
 
+        public void EndPlayerActionRequired(PlayerAction action)
+        {
+            /* Not used for Dealer */
+        }
+
         public void BeginBet()
         {
-            /* Dealer doesn't compute a bet */
+            /* Dealer doesn't place a bet */
+            PlayerActionRequired?.Invoke(this, PlayerAction.None);
             EndBet?.Invoke(this);
+        }
+
+        public void BeginInsurance()
+        {
+            /* Dealer doesn't do insurance on own hand */
+            EndInsurance?.Invoke(this);
         }
 
         public void BeginTurn()
         {
-            /* Just deal self cards until number equals soft 17 or below 21 */
+            /* Not used for dealer */
             EndTurn?.Invoke(this);
         }
 

@@ -1,13 +1,12 @@
 ﻿/* BlackJack - Version 1.0
  * Written by Jason James Newland
  * ©2025 - KangaSoft Software */
-
 using System;
 using System.Drawing;
 using System.Windows.Forms;
-using BlackJack.Classes;
 using BlackJack.Classes.Helpers;
 using BlackJack.Classes.Helpers.Management;
+using BlackJack.Classes.Player;
 using BlackJack.Controls;
 using BlackJack.Properties;
 
@@ -27,7 +26,7 @@ namespace BlackJack.Forms
             BackgroundImage = Resources.lobby;
             BackgroundImageLayout = ImageLayout.Zoom;
 
-            ReturnToLobby += OnReturnToLobby;
+            PlayerResigned += OnReturnToLobby;
         }
 
         protected override void OnLoad(EventArgs e)
@@ -93,9 +92,47 @@ namespace BlackJack.Forms
             base.OnResize(e);
         }
 
-        private void OnReturnToLobby(Game obj)
+        protected override void OnPlayerActionRequired(IPlayer player, PlayerAction action)
         {
-            System.Diagnostics.Debug.Print("Lobby");
+            System.Diagnostics.Debug.Print("Action required: " + player.Name);
+            if (player.GetType() != typeof(HumanPlayer))
+            {
+                return;
+            }
+            switch (action)
+            {
+                case PlayerAction.Betting:
+                    MessageBox.Show("My bet");
+                    player.Bet = 100;
+                    player.Money -= 100;
+                    break;
+
+                case PlayerAction.PlayerTurn:
+                    if (MessageBox.Show("My turn. Hit?", "Test code", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                    {
+                        player.State = PlayerState.Hit;
+                    }
+                    else
+                    {
+                        player.State = PlayerState.Stand;
+                    }
+                    break;
+            }
+            player.EndPlayerActionRequired(action);
+        }
+
+        private void OnReturnToLobby(IPlayer player)
+        {
+            if (player.GetType() == typeof(HumanPlayer))
+            {
+                /* It's me */
+                MessageBox.Show(@"You don't have enough money to meet the minimum bet requirement.\r\n\r\nReturning to lobby.");
+                return;
+            }
+            var name = PlayerNames.GetRandomName;
+            MessageBox.Show($@"{player.Name} doesn't have enough money to meet the minimum bet requirement and has retired.\r\n\r\n{name} has now joined the table.");
+            player.Name = name;
+            player.Money = 2000; // change this to what ever rule set later
         }
     }
 }

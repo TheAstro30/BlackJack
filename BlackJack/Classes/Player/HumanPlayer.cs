@@ -12,8 +12,10 @@ namespace BlackJack.Classes.Player
     public class HumanPlayer : IPlayer
     {
         public PlayerState State { get; set; }
+        public event Action<IPlayer, PlayerAction> PlayerActionRequired;
 
         public event Action<IPlayer> EndBet;
+        public event Action<IPlayer> EndInsurance;
 
         public event Action<IPlayer> EndTurn;
         public int Index { get; set; }
@@ -47,23 +49,37 @@ namespace BlackJack.Classes.Player
             Hand.Add(c);
         }
 
+        public void EndPlayerActionRequired(PlayerAction action)
+        {
+            /* Betting or turn finished */
+            switch (action)
+            {
+                case PlayerAction.Betting:
+                    EndBet?.Invoke(this);
+                    break;
+
+                case PlayerAction.PlayerTurn:
+                    EndTurn?.Invoke(this);
+                    break;
+            }
+        }
+
         public void BeginBet()
         {
-            /* Not used for human player */
-            MessageBox.Show("My bet");
-            Bet = 100;
-            Money -= 100;
+            /* Send message back to UI thread */
+            PlayerActionRequired?.Invoke(this, PlayerAction.Betting);
+        }
+
+        public void BeginInsurance()
+        {
+            /* Send message back to UI thread */
+            PlayerActionRequired?.Invoke(this, PlayerAction.Insurance);
         }
 
         public void BeginTurn()
         {
-            /* Not used for human player */
-            if (MessageBox.Show("My turn. Hit?", "Test code", MessageBoxButtons.YesNo) == DialogResult.Yes)
-            {
-                State = PlayerState.Hit;
-                return;
-            }
-            State = PlayerState.Stand;
+            /* Send message back to UI thread */
+            PlayerActionRequired?.Invoke(this, PlayerAction.PlayerTurn);
         }
 
         public override string ToString()

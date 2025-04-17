@@ -13,11 +13,17 @@ namespace BlackJack.Classes.Player
     {
         /* The "decision" making whether to hit, stand, etc. is going to happen in this class */
         private static readonly Random Rnd = new Random();
+
         public PlayerState State { get; set; }
+
+        public event Action<IPlayer, PlayerAction> PlayerActionRequired;
 
         public event Action<IPlayer> EndBet;
 
+        public event Action<IPlayer> EndInsurance;
+
         public event Action<IPlayer> EndTurn;
+
         public int Index { get; set; }
 
         public string Name { get; set; }
@@ -55,11 +61,23 @@ namespace BlackJack.Classes.Player
             Hand.Add(c);
         }
 
+        public void EndPlayerActionRequired(PlayerAction action)
+        {
+            /* Not used on computer player */
+        }
+
         public void BeginBet()
         {
             /* Compute a bet on place bet round */
+            PlayerActionRequired?.Invoke(this, PlayerAction.None);
             Bet = 100;
             Money -= 100;
+            EndBet?.Invoke(this);
+        }
+
+        public void BeginInsurance()
+        {
+            EndInsurance?.Invoke(this);
         }
 
         public void BeginTurn()
@@ -112,6 +130,7 @@ namespace BlackJack.Classes.Player
             {
                 State = PlayerState.Stand;
             }
+            EndTurn?.Invoke(this);
         }
 
         public override string ToString()
